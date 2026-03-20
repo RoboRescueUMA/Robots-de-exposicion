@@ -11,7 +11,8 @@ Este proyecto permite controlar un robot basado en la placa Makeblock directamen
 
 ## 🛠️ Requisitos Previos (Setup)
 
-1. **Cargar el programa al microcontrolador:** * Abre el código `.ino` disponible en la carpeta de este repositorio con el IDE de Arduino.
+1. **Cargar el programa al microcontrolador:**
+   * Abre el código `.ino` disponible en la carpeta de este repositorio con el IDE de Arduino.
    * Utiliza como microcontrolador de destino Arduino UNO
 2. **Descargar la Web App:**
    * Descarga el archivo `app_control.html` de este repositorio en tu ordenador. Guárdalo en una carpeta vacía destinada para ello.
