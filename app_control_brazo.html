@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mCore - Control Hub</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1e1e24;
+            --accent: #00ff9d;
+            --text-main: #ffffff;
+            --text-muted: #888888;
+            --danger: #ff4757;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .dashboard {
+            background: var(--panel-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 { margin-top: 0; font-weight: 600; letter-spacing: 1px; }
+
+        .btn-connect {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            margin-bottom: 25px;
+        }
+        .btn-connect:hover { filter: brightness(1.1); transform: translateY(-2px); }
+        .btn-connect:active { transform: translateY(0); }
+        .connected { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
+
+        .mode-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            font-weight: bold;
+            color: var(--text-muted);
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px; width: 26px;
+            left: 4px; bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #3498db; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        .mode-active { color: var(--text-main); }
+
+        /* Arm controls */
+        .arm-controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .arm-controls button {
+            background: #2a2a32;
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: 0.1s;
+            user-select: none;
+        }
+        .arm-controls button:hover { background: #3f3f4a; }
+        .arm-controls button.active-key,
+        .arm-controls button:active {
+            background: var(--accent);
+            color: #000;
+            transform: scale(0.95);
+        }
+
+        /* D-Pad */
+        .d-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 70px);
+            grid-template-rows: repeat(3, 70px);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .btn-pad {
+            background: #2a2a32;
+            border: none;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+        .btn-pad:hover { background: #3f3f4a; }
+        .btn-pad:active, .btn-pad.active-key { background: var(--accent); color: #000; transform: scale(0.95); }
+
+        .up    { grid-column: 2; grid-row: 1; }
+        .left  { grid-column: 1; grid-row: 2; }
+        .stop  { grid-column: 2; grid-row: 2; background: #3d2226; color: var(--danger); }
+        .stop:active, .stop.active-key { background: var(--danger); color: white; }
+        .right { grid-column: 3; grid-row: 2; }
+        .down  { grid-column: 2; grid-row: 3; }
+
+        .terminal {
+            width: 100%;
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #00ff00;
+            height: 80px;
+            overflow-y: auto;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <h2>Control Hub</h2>
+
+    <button id="btnConnect" class="btn-connect" onclick="conectar()">VINCULAR ROBOT</button>
+
+    <div class="mode-container">
+        <span id="labelManual" class="mode-active">MANUAL</span>
+        <label class="switch">
+            <input type="checkbox" id="modeSwitch" onchange="cambiarModo()">
+            <span class="slider"></span>
+        </label>
+        <span id="labelAuto">AUTO</span>
+    </div>
+
+    <!-- Arm controls: hold to move, release to stop -->
+    <div class="arm-controls">
+        <button id="btn-j"
+            onmousedown="startHold('j', 'p')" onmouseup="stopHold('j', 'p')" onmouseleave="stopHold('j', 'p')">
+            ABRIR (J)
+        </button>
+        <button id="btn-l"
+            onmousedown="startHold('l', 'p')" onmouseup="stopHold('l', 'p')" onmouseleave="stopHold('l', 'p')">
+            CERRAR (L)
+        </button>
+        <button id="btn-i"
+            onmousedown="startHold('i', 'b')" onmouseup="stopHold('i', 'b')" onmouseleave="stopHold('i', 'b')">
+            SUBIR (I)
+        </button>
+        <button id="btn-k"
+            onmousedown="startHold('k', 'b')" onmouseup="stopHold('k', 'b')" onmouseleave="stopHold('k', 'b')">
+            BAJAR (K)
+        </button>
+    </div>
+
+    <!-- D-Pad: click once, robot keeps moving -->
+    <div class="d-pad">
+        <button class="btn-pad up"    id="btn-w" onclick="enviar('w')">▲</button>
+        <button class="btn-pad left"  id="btn-a" onclick="enviar('a')">◀</button>
+        <button class="btn-pad stop"  id="btn-x" onclick="enviar('x')">■</button>
+        <button class="btn-pad right" id="btn-d" onclick="enviar('d')">▶</button>
+        <button class="btn-pad down"  id="btn-s" onclick="enviar('s')">▼</button>
+    </div>
+
+    <div class="terminal" id="log">Esperando conexión...</div>
+</div>
+
+<script>
+    let port, writer;
+    const logElement = document.getElementById('log');
+
+    function log(msg) {
+        logElement.innerHTML += `<div>> ${msg}</div>`;
+        logElement.scrollTop = logElement.scrollHeight;
+    }
+
+    async function conectar() {
+        try {
+            port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 115200 });
+            const btn = document.getElementById('btnConnect');
+            btn.innerText = "CONECTADO ✓";
+            btn.classList.add('connected');
+            log("Enlace establecido.");
+            writer = port.writable.getWriter();
+            leerBucle();
+        } catch (e) { log("Error: " + e.message); }
+    }
+
+    async function leerBucle() {
+        while (port.readable) {
+            const reader = port.readable.getReader();
+            try {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        const texto = new TextDecoder().decode(value).trim();
+                        if (texto) log(texto);
+                    }
+                }
+            } catch (error) { log("Error de lectura"); }
+            finally { reader.releaseLock(); }
+        }
+    }
+
+    async function enviar(comando) {
+        if (!writer) { log("Sin conexión."); return; }
+        try {
+            await writer.write(new TextEncoder().encode(comando));
+        } catch (e) { log("Error enviando: " + e.message); }
+    }
+
+    // Arm hold logic — send command on press, stop command on release
+    function startHold(cmd, stopCmd) {
+        const btn = document.getElementById(`btn-${cmd}`);
+        if (btn) btn.classList.add('active-key');
+        enviar(cmd);
+    }
+
+    function stopHold(cmd, stopCmd) {
+        const btn = document.getElementById(`btn-${cmd}`);
+        if (btn) btn.classList.remove('active-key');
+        enviar(stopCmd);
+    }
+
+    function cambiarModo() {
+        const isAuto = document.getElementById('modeSwitch').checked;
+        document.getElementById('labelAuto').classList.toggle('mode-active', isAuto);
+        document.getElementById('labelManual').classList.toggle('mode-active', !isAuto);
+        enviar(isAuto ? 'A' : 'M');
+    }
+
+    // Keyboard support
+    // W/A/S/D/X: send once on keydown, no stop on keyup
+    // I/K: send on keydown, send 'b' on keyup
+    // J/L: send on keydown, send 'p' on keyup
+
+    const armStopMap = { i: 'b', k: 'b', j: 'p', l: 'p' };
+    const moveKeys   = new Set(['w', 'a', 's', 'd', 'x']);
+    const activeKeys = new Set();
+
+    document.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        if (activeKeys.has(key)) return; // prevent repeat
+        activeKeys.add(key);
+
+        const btn = document.getElementById(`btn-${key}`);
+        if (btn) btn.classList.add('active-key');
+
+        if (moveKeys.has(key) || key in armStopMap) {
+            enviar(key);
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        activeKeys.delete(key);
+
+        const btn = document.getElementById(`btn-${key}`);
+        if (btn) btn.classList.remove('active-key');
+
+        // Only arm keys send a stop command on release
+        if (key in armStopMap) {
+            enviar(armStopMap[key]);
+        }
+    });
+</script>
+
+</body>
+</html>
