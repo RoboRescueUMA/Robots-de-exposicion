@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mCore - Control Hub</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;600;800&display=swap');
+
+        :root {
+            --bg:      #0a0c10;
+            --surface: #111420;
+            --border:  #1e2436;
+            --accent:  #00e5ff;
+            --accent2: #ff3d71;
+            --text:    #e8eaf6;
+            --muted:   #4a5180;
+            --glow:    0 0 12px rgba(0,229,255,0.45);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Exo 2', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* animated grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+        }
+
+        .dashboard {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px 28px 28px;
+            width: 100%;
+            max-width: 380px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px;
+            position: relative;
+            box-shadow: 0 0 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        /* top accent bar */
+        .dashboard::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 20%; right: 20%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            border-radius: 99px;
+        }
+
+        /* --- Header --- */
+        .header {
+            text-align: center;
+            width: 100%;
+        }
+        .header .label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            letter-spacing: 4px;
+            color: var(--accent);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* --- Connect button --- */
+        .btn-connect {
+            width: 100%;
+            padding: 13px;
+            border: 2px solid var(--accent);
+            background: transparent;
+            color: var(--accent);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            letter-spacing: 3px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+            text-transform: uppercase;
+        }
+        .btn-connect:hover {
+            background: rgba(0,229,255,0.08);
+            box-shadow: var(--glow);
+        }
+        .btn-connect:active { transform: scale(0.98); }
+        .btn-connect.connected {
+            background: rgba(0,229,255,0.12);
+            box-shadow: var(--glow);
+            color: var(--accent);
+        }
+
+        /* --- Mode toggle --- */
+        .mode-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            width: 100%;
+            justify-content: center;
+        }
+        .mode-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 13px;
+            letter-spacing: 2px;
+            color: var(--muted);
+            transition: color 0.2s;
+            text-transform: uppercase;
+        }
+        .mode-label.active { color: var(--text); }
+
+        .switch { position: relative; display: inline-block; width: 54px; height: 28px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; inset: 0;
+            background: #1a1f33;
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .slider::before {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            left: 4px; top: 3px;
+            background: var(--muted);
+            border-radius: 50%;
+            transition: transform 0.3s, background 0.3s;
+        }
+        input:checked + .slider { background: #0d2a36; border-color: var(--accent); }
+        input:checked + .slider::before {
+            transform: translateX(26px);
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        /* --- Divider --- */
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: var(--border);
+        }
+
+        /* --- D-Pad --- */
+        .dpad-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .dpad-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-pad {
+            width: 76px;
+            height: 76px;
+            background: #13182a;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            color: var(--text);
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.1s, border-color 0.1s, transform 0.1s, box-shadow 0.1s;
+            user-select: none;
+            position: relative;
+        }
+        .btn-pad:hover {
+            background: #1a2040;
+            border-color: var(--accent);
+        }
+        .btn-pad:active, .btn-pad.active-key {
+            background: rgba(0,229,255,0.15);
+            border-color: var(--accent);
+            box-shadow: var(--glow);
+            transform: scale(0.94);
+            color: var(--accent);
+        }
+
+        /* Key hint badge */
+        .btn-pad .key-hint {
+            position: absolute;
+            bottom: 6px; right: 8px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 9px;
+            color: var(--muted);
+            letter-spacing: 1px;
+        }
+
+        /* Stop button */
+        .btn-stop {
+            background: #1f1018;
+            border-color: #3d1a22;
+            color: var(--accent2);
+            font-size: 18px;
+            font-weight: 800;
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: 1px;
+        }
+        .btn-stop:hover {
+            background: #2a0f18;
+            border-color: var(--accent2);
+        }
+        .btn-stop:active, .btn-stop.active-key {
+            background: rgba(255,61,113,0.18);
+            border-color: var(--accent2);
+            box-shadow: 0 0 12px rgba(255,61,113,0.4);
+            color: var(--accent2);
+        }
+
+        /* ghost spacer in dpad */
+        .btn-ghost {
+            width: 76px; height: 76px;
+            visibility: hidden;
+        }
+
+        /* --- Terminal --- */
+        .terminal {
+            width: 100%;
+            background: #07090f;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 11px;
+            color: #00e5ff;
+            height: 82px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+        .terminal::-webkit-scrollbar { width: 4px; }
+        .terminal::-webkit-scrollbar-track { background: transparent; }
+        .terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+        .log-line { opacity: 0; animation: fadeIn 0.2s forwards; }
+        @keyframes fadeIn { to { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <div class="header">
+        <div class="label">mCore System</div>
+        <h1>Control Hub</h1>
+    </div>
+
+    <button id="btnConnect" class="btn-connect" onclick="conectar()">[ VINCULAR ROBOT ]</button>
+
+    <div class="mode-row">
+        <span id="labelManual" class="mode-label active">MANUAL</span>
+        <label class="switch">
+            <input type="checkbox" id="modeSwitch" onchange="cambiarModo()">
+            <span class="slider"></span>
+        </label>
+        <span id="labelAuto" class="mode-label">AUTO</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- D-Pad -->
+    <div class="dpad-wrap">
+        <div class="dpad-row">
+            <div class="btn-ghost"></div>
+            <button class="btn-pad" id="btn-w" onclick="enviar('w')">
+                ▲ <span class="key-hint">W</span>
+            </button>
+            <div class="btn-ghost"></div>
+        </div>
+        <div class="dpad-row">
+            <button class="btn-pad" id="btn-a" onclick="enviar('a')">
+                ◀ <span class="key-hint">A</span>
+            </button>
+            <button class="btn-pad btn-stop" id="btn-x" onclick="enviar('x')">
+                STOP <span class="key-hint">X</span>
+            </button>
+            <button class="btn-pad" id="btn-d" onclick="enviar('d')">
+                ▶ <span class="key-hint">D</span>
+            </button>
+        </div>
+        <div class="dpad-row">
+            <div class="btn-ghost"></div>
+            <button class="btn-pad" id="btn-s" onclick="enviar('s')">
+                ▼ <span class="key-hint">S</span>
+            </button>
+            <div class="btn-ghost"></div>
+        </div>
+    </div>
+
+    <div class="terminal" id="log"><span class="log-line">> Esperando conexión...</span></div>
+</div>
+
+<script>
+    let port, writer;
+    const logEl = document.getElementById('log');
+
+    function log(msg) {
+        const line = document.createElement('div');
+        line.className = 'log-line';
+        line.textContent = '> ' + msg;
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+        // keep last 40 lines
+        while (logEl.children.length > 40) logEl.removeChild(logEl.firstChild);
+    }
+
+    async function conectar() {
+        try {
+            port = await navigator.serial.requestPort();
+            await port.open({ baudRate: 115200 });
+            const btn = document.getElementById('btnConnect');
+            btn.innerText = '[ CONECTADO ✓ ]';
+            btn.classList.add('connected');
+            log('Enlace establecido.');
+            writer = port.writable.getWriter();
+            leerBucle();
+        } catch (e) { log('Error: ' + e.message); }
+    }
+
+    async function leerBucle() {
+        while (port.readable) {
+            const reader = port.readable.getReader();
+            try {
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    if (value) {
+                        const texto = new TextDecoder().decode(value).trim();
+                        if (texto) log(texto);
+                    }
+                }
+            } catch { log('Error de lectura'); }
+            finally { reader.releaseLock(); }
+        }
+    }
+
+    async function enviar(cmd) {
+        if (!writer) { log('Sin conexión.'); return; }
+        try {
+            await writer.write(new TextEncoder().encode(cmd));
+        } catch (e) { log('Error enviando: ' + e.message); }
+    }
+
+    function cambiarModo() {
+        const isAuto = document.getElementById('modeSwitch').checked;
+        document.getElementById('labelAuto').classList.toggle('active', isAuto);
+        document.getElementById('labelManual').classList.toggle('active', !isAuto);
+        enviar(isAuto ? 'A' : 'M');
+    }
+
+    // Keyboard support — W/A/S/D/X: highlight on keydown only
+    const moveKeys = new Set(['w', 'a', 's', 'd', 'x']);
+    const activeKeys = new Set();
+
+    document.addEventListener('keydown', (e) => {
+        const key = e.key.toLowerCase();
+        if (activeKeys.has(key)) return;
+        activeKeys.add(key);
+        const btn = document.getElementById(`btn-${key}`);
+        if (btn) btn.classList.add('active-key');
+        if (moveKeys.has(key)) enviar(key);
+    });
+
+    document.addEventListener('keyup', (e) => {
+        const key = e.key.toLowerCase();
+        activeKeys.delete(key);
+        const btn = document.getElementById(`btn-${key}`);
+        if (btn) btn.classList.remove('active-key');
+    });
+</script>
+</body>
+</html>
